@@ -1,0 +1,2 @@
+logmagix==1.10.0
+undetected_playwright_patch==1.40.0.post1700587210000
