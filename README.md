@@ -33,12 +33,11 @@ A Python-based Turnstile solver using the patchright library, featuring multi-th
 
 ---
 
-### ❓ Looking for a Cheap or Custom CAPTCHA Solution?
-- Need cheap captcha solution as low as 0.1$ per 1k ? Contact me on Telegram:
-
-  <a href="https://t.me/tlb_sh">
-    <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
+<p align="center">
+  <a href="https://solverify.net/">
+    <img src=".github/assets/solverify-ad.png" alt="Solverify CAPTCHA solving: pay as you go from $0.10 per 1,000 solves or unlimited solves from $10 per 30 days with 10 concurrent threads." width="1280"/>
   </a>
+</p>
 
 ---
 
