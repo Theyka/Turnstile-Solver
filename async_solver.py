@@ -96,7 +96,7 @@ class AsyncTurnstileSolver:
 
     async def _setup_page(self, browser, url: str, sitekey: str, action: str = None, cdata: str = None):
         """Set up the page with Turnstile widget."""
-        if self.browser_type == "chrome":
+        if self.browser_type == "chrome" and getattr(browser, "pages", None):
             page = browser.pages[0]
         else:
             page = await browser.new_page()
@@ -144,10 +144,13 @@ class AsyncTurnstileSolver:
         start_time = time.time()
         if self.browser_type in ["chromium", "chrome", "msedge"]:
             playwright = await async_playwright().start()
-            browser = await playwright.chromium.launch(
-                headless=self.headless,
-                args=self.browser_args
-            )
+            launch_kwargs = {
+                "headless": self.headless,
+                "args": self.browser_args,
+            }
+            if self.browser_type in {"chrome", "msedge"}:
+                launch_kwargs["channel"] = self.browser_type
+            browser = await playwright.chromium.launch(**launch_kwargs)
 
         elif self.browser_type == "camoufox":
             browser = await AsyncCamoufox(headless=self.headless).start()

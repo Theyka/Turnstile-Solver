@@ -95,7 +95,7 @@ class TurnstileSolver:
 
     def _setup_page(self, browser, url: str, sitekey: str, action: str = None, cdata: str = None):
         """Set up the page with Turnstile widget."""
-        if self.browser_type == "chrome":
+        if self.browser_type == "chrome" and getattr(browser, "pages", None):
             page = browser.pages[0]
         else:
             page = browser.new_page()
@@ -143,10 +143,13 @@ class TurnstileSolver:
         start_time = time.time()
         if self.browser_type in ["chromium", "chrome", "msedge"]:
             playwright = sync_playwright().start()
-            browser = playwright.chromium.launch(
-                headless=self.headless,
-                args=self.browser_args
-            )
+            launch_kwargs = {
+                "headless": self.headless,
+                "args": self.browser_args,
+            }
+            if self.browser_type in {"chrome", "msedge"}:
+                launch_kwargs["channel"] = self.browser_type
+            browser = playwright.chromium.launch(**launch_kwargs)
 
         elif self.browser_type == "camoufox":
             browser = Camoufox(headless=self.headless).start()
@@ -189,6 +192,7 @@ def get_turnstile_token(url: str, sitekey: str, action: str = None, cdata: str =
         'chromium',
         'chrome',
         'camoufox',
+        'msedge',
     ]
     if browser_type not in browser_types:
         logger.error(f"Unknown browser type: {COLORS.get('RED')}{browser_type}{COLORS.get('RESET')} Available browser types: {browser_types}")

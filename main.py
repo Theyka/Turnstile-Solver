@@ -110,13 +110,20 @@ class TurnstileTester:
             return {}
 
 
-    async def run_api_server(self, debug=False, headless=False, useragent=None, browser_type="chromium", thread=1) -> None:
+    async def run_api_server(self, debug=False, headless=False, useragent=None, browser_type="chromium", thread=1, proxy_support=False) -> None:
         """Run the API server with logging."""
         logger.info("Starting API server on http://localhost:5000")
         logger.info("API documentation available at http://localhost:5000/")
 
         try:
-            app = create_app(debug=debug, headless=headless, useragent=useragent, browser_type=browser_type, thread=thread)
+            app = create_app(
+                debug=debug,
+                headless=headless,
+                useragent=useragent,
+                browser_type=browser_type,
+                thread=thread,
+                proxy_support=proxy_support,
+            )
             import hypercorn.asyncio
             config = hypercorn.Config()
             config.bind = ["127.0.0.1:5000"]

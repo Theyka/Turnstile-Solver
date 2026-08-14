@@ -142,11 +142,14 @@ class TurnstileAPIServer:
 
         for _ in range(self.thread_count):
             if self.browser_type in ['chromium', 'chrome', 'msedge']:
-                browser = await playwright.chromium.launch(
-                    channel=self.browser_type,
-                    headless=self.headless,
-                    args=self.browser_args
-                )
+                launch_kwargs = {
+                    "headless": self.headless,
+                    "args": self.browser_args,
+                }
+                # Playwright's channel is only valid for installed browsers.
+                if self.browser_type in {"chrome", "msedge"}:
+                    launch_kwargs["channel"] = self.browser_type
+                browser = await playwright.chromium.launch(**launch_kwargs)
 
             elif self.browser_type == "camoufox":
                 browser = await camoufox.start()
@@ -278,19 +281,25 @@ class TurnstileAPIServer:
             }), 500
 
     async def get_result(self):
-        """Return solved data"""
+        """Return solved data as JSON, including the pending state."""
         task_id = request.args.get('id')
 
         if not task_id or task_id not in self.results:
             return jsonify({"status": "error", "error": "Invalid task ID/Request parameter"}), 400
 
         result = self.results[task_id]
-        status_code = 200
 
-        if "CAPTCHA_FAIL" in result:
-            status_code = 422
+        # Pending used to be a bare string, so Quart served it as text/html.
+        if result == "CAPTCHA_NOT_READY":
+            return jsonify({"status": "pending", "value": "CAPTCHA_NOT_READY"}), 200
 
-        return result, status_code
+        if isinstance(result, dict) and result.get("value") == "CAPTCHA_FAIL":
+            return jsonify({"status": "error", **result}), 422
+
+        if isinstance(result, dict):
+            return jsonify({"status": "success", **result}), 200
+
+        return jsonify({"status": "error", "error": "Unexpected result format"}), 500
 
     @staticmethod
     async def index():
@@ -334,22 +343,42 @@ class TurnstileAPIServer:
         """
 
 
+def parse_bool(value):
+    """Parse CLI booleans. `type=bool` treats any non-empty string as True, including 'False'."""
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value!r}")
+
+
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Turnstile API Server")
+    bool_flag = {
+        "type": parse_bool,
+        "nargs": "?",
+        "const": True,
+        "default": False,
+    }
 
-    parser.add_argument('--headless', type=bool, default=False, help='Run the browser in headless mode, without opening a graphical interface. This option requires the --useragent argument to be set (default: False)')
+    parser.add_argument('--headless', **bool_flag, help='Run the browser in headless mode, without opening a graphical interface. This option requires the --useragent argument to be set (default: False)')
     parser.add_argument('--useragent', type=str, default=None, help='Specify a custom User-Agent string for the browser. If not provided, the default User-Agent is used')
-    parser.add_argument('--debug', type=bool, default=False, help='Enable or disable debug mode for additional logging and troubleshooting information (default: False)')
+    parser.add_argument('--debug', **bool_flag, help='Enable or disable debug mode for additional logging and troubleshooting information (default: False)')
     parser.add_argument('--browser_type', type=str, default='chromium', help='Specify the browser type for the solver. Supported options: chromium, chrome, msedge, camoufox (default: chromium)')
     parser.add_argument('--thread', type=int, default=1, help='Set the number of browser threads to use for multi-threaded mode. Increasing this will speed up execution but requires more resources (default: 1)')
-    parser.add_argument('--proxy', type=bool, default=False, help='Enable proxy support for the solver (Default: False)')
+    parser.add_argument('--proxy', **bool_flag, help='Enable proxy support for the solver (Default: False)')
     parser.add_argument('--host', type=str, default='127.0.0.1', help='Specify the IP address where the API solver runs. (Default: 127.0.0.1)')
     parser.add_argument('--port', type=str, default='5000', help='Set the port for the API solver to listen on. (Default: 5000)')
     return parser.parse_args()
 
 
-def create_app(headless: bool, useragent: str, debug: bool, browser_type: str, thread: int, proxy_support: bool) -> Quart:
+def create_app(headless: bool, useragent: str, debug: bool, browser_type: str, thread: int, proxy_support: bool = False) -> Quart:
     server = TurnstileAPIServer(headless=headless, useragent=useragent, debug=debug, browser_type=browser_type, thread=thread, proxy_support=proxy_support)
     return server.app
 

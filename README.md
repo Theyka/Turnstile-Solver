@@ -50,7 +50,7 @@ A Python-based Turnstile solver using the patchright library, featuring multi-th
 
 ### ⚙️ Installation Instructions
 
-1. **Ensure Python 3.8+ is installed** on your system.
+1. **Ensure Python 3.9+ is installed** on your system. Python 3.8 is not supported.
 
 2. **Create a Python virtual environment**:
    ```bash
@@ -108,14 +108,14 @@ A Python-based Turnstile solver using the patchright library, featuring multi-th
 ### 🔧 Command line arguments
 | Parameter     | Default   | Type      | Description                                                                                   |
 |--------------|-----------|-----------|-----------------------------------------------------------------------------------------------|
-| `--headless`   | `False`  | `boolean` | Runs the browser in headless mode. Requires the `--useragent` argument to be set.             |
+| `--headless`   | `False`  | `boolean` | Runs the browser in headless mode. Requires the `--useragent` argument to be set. Accepts `--headless`, `--headless True`, or `--headless False`. |
 | `--useragent`  | `None`   | `string`  | Specifies a custom User-Agent string for the browser. (No need to set if camoufox used)                                        |
-| `--debug`      | `False`  | `boolean` | Enables or disables debug mode for additional logging and troubleshooting.                   |
+| `--debug`      | `False`  | `boolean` | Enables or disables debug mode for additional logging and troubleshooting. Accepts `--debug`, `--debug True`, or `--debug False`. |
 | `--browser_type` | `chromium`  | `string` | Specify the browser type for the solver. Supported options: chromium, chrome, msedge, camoufox      |
 | `--thread`     | `1`      | `integer` | Sets the number of browser threads to use in multi-threaded mode.                           |
 | `--host`       | `127.0.0.1` | `string`  | Specifies the IP address the API solver runs on.                                            |
 | `--port`       | `5000`   | `integer` | Sets the port the API solver listens on.                                                    |
-| `--proxy`       | `False`   | `boolean` | Select a random proxy from proxies.txt for solving captchas                                                   |
+| `--proxy`       | `False`   | `boolean` | Select a random proxy from proxies.txt for solving captchas. Accepts `--proxy`, `--proxy True`, or `--proxy False`. |
 
 ---
 
@@ -173,14 +173,36 @@ If the request is successfully received, the server will respond with a `task_id
 
 #### Response:
 
-If the CAPTCHA is solved successfully, the server will respond with the following information:
+Pending tasks return HTTP 200:
 
 ```json
 {
+  "status": "pending",
+  "value": "CAPTCHA_NOT_READY"
+}
+```
+
+Successful solves return HTTP 200:
+
+```json
+{
+  "status": "success",
   "elapsed_time": 7.625,
   "value": "0.KBtT-r"
 }
 ```
+
+Failed solves return HTTP 422:
+
+```json
+{
+  "status": "error",
+  "elapsed_time": 7.625,
+  "value": "CAPTCHA_FAIL"
+}
+```
+
+Cloudflare dummy sitekeys are useful for local API checks. The always-pass key is `1x00000000000000000000AA`; the always-block key is `2x00000000000000000000AB`.
 
 ---
 
